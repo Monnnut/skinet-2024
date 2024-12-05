@@ -1,0 +1,31 @@
+# Specifies a section in the Docker Compose file that defines the services (containers) 
+# to be deployed.
+services:
+# tap is important.- name of service
+  sql:
+  #A Docker image is a file that contains the instructions and files needed to create a Docker container
+    image: mcr.microsoft.com/azure-sql-edge
+    #Defines environment variables to be passed into the container. 
+    environment:
+    #End User License Agreement (EULA). 1 means yes
+     ACCEPT_EULA: "1"
+     MSSQL_SA_PASSWORD: "Password@1"
+    #The format specifies the port on the host machine (outside the container) and the port inside the container.
+    #"host_port:container_port"
+    ports:
+      - "1433:1433"
+
+# What This Configuration Does
+# Defines a Service:
+# It sets up a container called sql running Azure SQL Edge.
+
+# Uses an Image:
+# The container is created using the Azure SQL Edge image from Microsoft's container registry.
+
+# Configures the SQL Server Instance:
+# The ACCEPT_EULA variable accepts the license agreement.
+# The MSSQL_SA_PASSWORD variable sets the administrator password.
+
+# Runs the SQL Server:
+# When you deploy this configuration with Docker Compose, 
+#the service will start, and you’ll have a running SQL Server instance ready for use.
