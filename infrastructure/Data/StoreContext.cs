@@ -10,7 +10,7 @@ namespace infrastructure.Data;
 public class StoreContext(DbContextOptions options) : DbContext(options)
 {
     //use product entities to create tables
-    public DbSet<Product>? Products { get; set; }
+    public required DbSet<Product> Products { get; set; } 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

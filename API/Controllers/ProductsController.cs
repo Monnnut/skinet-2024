@@ -1,5 +1,6 @@
 using System;
 using Core.Entities;
+using Core.Interfaces;
 using infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,22 +9,22 @@ namespace API.Controllers;
 //api controller gives us automatic controller binding
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController(StoreContext storeContext) : ControllerBase
+public class ProductsController(IProductRepository repo) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+    public async Task<ActionResult<IEnumerable<Product>>> GetProducts(string? brand, 
+    string? type, string? sort)
     {
 
-        var products = await storeContext.Products!.ToListAsync();
 
-        return products;
+        return Ok(await repo.GetProductAsync(brand, type, sort));
     }
 
     [HttpGet("{id:int}")] // api/products/12
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
 
-        var product = await storeContext.Products!.FindAsync(id);
+        var product = await repo.GetProductByIdAsync(id);
 
         if (product == null)
         {
@@ -36,11 +37,19 @@ public class ProductsController(StoreContext storeContext) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Product>> CreateProduct(Product product)
     {
-        storeContext.Products!.Add(product);
+        repo.AddProduct(product);
+        //check if our changes is saved
+        if (await repo.SaveChangesAsync())
+        {
+            //Saves the new product to the database.
+            //return CreatedAtAction("ActionName", routeValues, value);
+            //"ActionName": The name of the action method that retrieves the resource (e.g., GetProduct).
+            // routeValues: Route parameters needed to generate the URL (e.g., { id = product.Id }).
+            // value: The newly created resource object (e.g., product) returned in the response body.
+            return CreatedAtAction("GetProduct", new { id = product.Id }, product);
+        }
 
-        await storeContext.SaveChangesAsync();
-
-        return product;
+        return BadRequest("Problem creating product");
 
     }
 
@@ -55,33 +64,47 @@ public class ProductsController(StoreContext storeContext) : ControllerBase
 
         //entry provide access to being track
         //tell them that is is being modfied
-        storeContext.Entry(product).State = EntityState.Modified;
+        repo.UpdateProduct(product);
 
-        await storeContext.SaveChangesAsync();
+        if (await repo.SaveChangesAsync())
+        {
+            return NoContent();
+        }
 
-        //when we are not returning anything
-        return NoContent();
-
+        return BadRequest("Problem with updating product");
     }
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteProduct(int id)
     {
         //find the product that we want to delete
-        var product = await storeContext.Products!.FindAsync(id);
+        var product = await repo.GetProductByIdAsync(id);
 
         if (product == null) return NotFound();
         //remove product
-        storeContext.Products.Remove(product);
+        repo.DeleteProduct(product);
         //save changes
-        await storeContext.SaveChangesAsync();
-        //return nothing
-        return NoContent();
+        if (await repo.SaveChangesAsync())
+        {
+            //return nothing
+            return NoContent();
+        }
+        return BadRequest("Problem deleting product");
+
+    }
+    [HttpGet("brands")]
+    public async Task<ActionResult<IReadOnlyList<string>>> GetBrands()
+    {
+        return Ok(await repo.GetBrandsAsync());
+    }
+
+    [HttpGet("types")]
+    public async Task<ActionResult<IReadOnlyList<string>>> GetTypes()
+    {
+        return Ok(await repo.GetTypesAsync());
     }
     private bool ProductExists(int id)
     {
-
-        //Any determines element statisfied the condition
-        return storeContext.Products!.Any(x => x.Id == id);
+        return repo.ProductExists(id);
     }
 
 }
