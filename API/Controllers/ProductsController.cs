@@ -1,6 +1,7 @@
 using System;
 using Core.Entities;
 using Core.Interfaces;
+using Core.Specifications;
 using infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,22 +10,25 @@ namespace API.Controllers;
 //api controller gives us automatic controller binding
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController(IProductRepository repo) : ControllerBase
+public class ProductsController(IGenericRepository<Product> repo) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts(string? brand, 
+    public async Task<ActionResult<IEnumerable<Product>>> GetProducts(string? brand,
     string? type, string? sort)
     {
 
+        var spec = new ProductSpecification(brand, type, sort);
 
-        return Ok(await repo.GetProductAsync(brand, type, sort));
+        var products = await repo.ListAsync(spec);
+
+        return Ok(products);
     }
 
     [HttpGet("{id:int}")] // api/products/12
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
 
-        var product = await repo.GetProductByIdAsync(id);
+        var product = await repo.GetByIdAsync(id);
 
         if (product == null)
         {
@@ -37,9 +41,9 @@ public class ProductsController(IProductRepository repo) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Product>> CreateProduct(Product product)
     {
-        repo.AddProduct(product);
+        repo.Add(product);
         //check if our changes is saved
-        if (await repo.SaveChangesAsync())
+        if (await repo.SaveAllAsync())
         {
             //Saves the new product to the database.
             //return CreatedAtAction("ActionName", routeValues, value);
@@ -64,9 +68,9 @@ public class ProductsController(IProductRepository repo) : ControllerBase
 
         //entry provide access to being track
         //tell them that is is being modfied
-        repo.UpdateProduct(product);
+        repo.Update(product);
 
-        if (await repo.SaveChangesAsync())
+        if (await repo.SaveAllAsync())
         {
             return NoContent();
         }
@@ -77,13 +81,13 @@ public class ProductsController(IProductRepository repo) : ControllerBase
     public async Task<ActionResult> DeleteProduct(int id)
     {
         //find the product that we want to delete
-        var product = await repo.GetProductByIdAsync(id);
+        var product = await repo.GetByIdAsync(id);
 
         if (product == null) return NotFound();
         //remove product
-        repo.DeleteProduct(product);
+        repo.Remove(product);
         //save changes
-        if (await repo.SaveChangesAsync())
+        if (await repo.SaveAllAsync())
         {
             //return nothing
             return NoContent();
@@ -94,17 +98,19 @@ public class ProductsController(IProductRepository repo) : ControllerBase
     [HttpGet("brands")]
     public async Task<ActionResult<IReadOnlyList<string>>> GetBrands()
     {
-        return Ok(await repo.GetBrandsAsync());
+        var spec = new BrandListSpecification();
+        return Ok(await repo.ListAsync(spec));
     }
 
     [HttpGet("types")]
     public async Task<ActionResult<IReadOnlyList<string>>> GetTypes()
     {
-        return Ok(await repo.GetTypesAsync());
+        var spec = new TypeListSpecification();
+        return Ok(await repo.ListAsync(spec));
     }
     private bool ProductExists(int id)
     {
-        return repo.ProductExists(id);
+        return repo.Exists(id);
     }
 
 }
