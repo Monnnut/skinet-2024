@@ -1,3 +1,4 @@
+using API.Middleware;
 using Core.Interfaces;
 using infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -19,10 +20,18 @@ builder.Services.AddScoped<IProductRepository,ProductRepository>();
 builder.Services.AddScoped(typeof(IGenericRepository<>),typeof(GenericRepository<>));
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+//services use to transfer data to different host
+builder.Services.AddCors();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseMiddleware<ExceptionMiddleware>();
+//cors need to be between middleware and mapcontroller
+//can send request to api server as long as its from the origin
+//browser sercurity feature
+app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod()
+.WithOrigins("http://localhost:4200","https://localhost:4200"));
 
 app.MapControllers();
 
