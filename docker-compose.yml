@@ -14,6 +14,17 @@ services:
     #"host_port:container_port"
     ports:
       - "1433:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+volumes:
+  redis-data:
+  sql-data:
 
 # What This Configuration Does
 # Defines a Service:
